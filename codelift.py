@@ -15,5 +15,6 @@ if __name__ == '__main__':
         cl_settings = json.load(settings)
 
     building = Building(PLANS[plan_id], cl_settings)
+    building.connect()
     building.start()
     print("Finished plan: %s" % (PLANS[plan_id]))

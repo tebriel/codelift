@@ -14,13 +14,13 @@ class TestElevator:
 
     def test_go_to_up(self):
         """Elevator will go up"""
-        will_do_it = self.elevator.go_to(2)
+        will_do_it = self.elevator.go_to(2, 1)
         assert self.elevator.stops[-1] == 2
         assert will_do_it is True
 
     def test_get_command(self):
         """Elevator will give the correct command object"""
-        self.elevator.go_to(2)
+        self.elevator.go_to(2, 1)
         comm = self.elevator.get_command()
 
         assert comm.direction == 1
@@ -74,7 +74,7 @@ class TestElevator:
 
     def test_update_state_with_high_dest(self):
         """Updating state with a higher destination updates buttons"""
-        self.elevator.go_to(5)
+        self.elevator.go_to(5, 1)
         self.elevator.process_buttons([5, 6])
 
         assert_equals(self.elevator.stops, [5, 6])
@@ -83,7 +83,7 @@ class TestElevator:
     def test_go_to_down(self):
         """Elevator will go to a lower floor"""
         self.elevator.location = 5
-        self.elevator.go_to(3)
+        self.elevator.go_to(3, -1)
         comm = self.elevator.get_command()
         assert comm.id == 0
         assert comm.direction == -1
@@ -94,7 +94,7 @@ class TestElevator:
         self.elevator.location = 5
         self.elevator.process_buttons([9])
         self.elevator.get_command()
-        assert self.elevator.go_to(4) is False
+        assert self.elevator.go_to(4, 1) is False
 
     def test_process_request(self):
         """Handle a request object"""

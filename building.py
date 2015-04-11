@@ -1,52 +1,77 @@
 from elevator import Elevator
+from collections import namedtuple
 from boxlift_api import PYCON2015_EVENT_NAME, BoxLift
+
+Request = namedtuple('Request', ['floor', 'direction'])
 
 
 class Building:
     def __init__(self, plan, settings):
-        bot_name = settings['bot_name']
-        email = settings['email']
-        registration_id = settings['registration_id']
-        event_name = PYCON2015_EVENT_NAME
-        self.bl = BoxLift(bot_name, plan, email, registration_id, event_name)
+        self.bot_name = settings['bot_name']
+        self.email = settings['email']
+        self.registration_id = settings['registration_id']
+        self.event_name = PYCON2015_EVENT_NAME
+        self.plan = plan
+        self.acked = []
+
+    def connect(self):
+        self.bl = BoxLift(self.bot_name, self.plan, self.email,
+                          self.registration_id, self.event_name)
 
     def build_elevators(self, state):
         """Build our elevator objects"""
-        elevators = [0] * len(state['elevators'])
+        self.elevators = [0] * len(state['elevators'])
         for elevator in state['elevators']:
-            elevators[elevator['id']] = Elevator(elevator)
-        return elevators
+            self.elevators[elevator['id']] = Elevator(elevator)
 
-    def process_elevators(self, state, elevators):
+    def process_elevators(self, state):
         """Handle the elevator state objects"""
         for elevator in state['elevators']:
-            elevators[elevator['id']].update_state(elevator)
+            self.elevators[elevator['id']].update_state(elevator)
 
-    def process_requests(self, state, elevators):
+    def process_requests(self, state):
         """Handle the requests from the state object"""
-        # import pdb; pdb.set_trace()
         for request in state['requests']:
-            for elevator in elevators:
+            req_tup = Request(request['floor'], request['direction'])
+            if req_tup in self.acked:
+                continue
+            for elevator in self.elevators:
                 if elevator.process_request(request):
+                    self.acked.append(req_tup)
                     break
+
+    def generate_commands(self):
+        """Gathers the commands from the elevators and clears finished
+        requests"""
+        commands = []
+        for elevator in self.elevators:
+            commands.append(elevator.get_command())
+            if elevator.speed == 0:
+                request = Request(elevator.location, elevator.cur_direction)
+                self.acked = list(set(self.acked) - {request})
+        return commands
+
+    def do_step(self, state):
+        self.process_elevators(state)
+        self.process_requests(state)
+
+        return self.generate_commands()
 
     def start(self):
         state = self.bl.send_commands()
-        elevators = self.build_elevators(state)
+        self.build_elevators(state)
+
         steps = 0
         while state.get('status', 'finished') == 'in_progress':
             print("\n\nStep %d\n\n" % (steps))
-            self.process_elevators(state, elevators)
-            self.process_requests(state, elevators)
-
-            to_send = [e.get_command() for e in elevators]
+            to_send = self.do_step(state)
             state = self.bl.send_commands(to_send)
-            for e in elevators:
+            for e in self.elevators:
                 print(e)
             print("Requests: %s " % (state['requests']))
             steps += 1
 
         print(state)
-        for elevator in elevators:
+        for elevator in self.elevators:
             print(elevator)
         print("%d steps" % (steps))
