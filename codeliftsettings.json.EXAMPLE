@@ -1,0 +1,11 @@
+{
+  "building": "http://codelift.org/v1/buildings/be017e28-fdde-4bff-8fb5-4c6662c8547a",
+  "id": "be017e28-fdde-4bff-8fb5-4c6662c8547a",
+  "message": "Building Created",
+  "status": "started",
+  "token": "5a9fefba4b13e23923ed68e2a6953b5c",
+  "visualization": "http://codelift.org/v1/buildings/be017e28-fdde-4bff-8fb5-4c6662c8547a",
+  "bot_name": "BUILDINGNAME",
+  "email": "EMAIL",
+  "registration_id": "BADGEID"
+}
