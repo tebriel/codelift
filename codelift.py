@@ -5,7 +5,7 @@ import collections
 from elevator import Elevator
 from boxlift_api import PYCON2015_EVENT_NAME, BoxLift
 
-PLANS = ['training_1']
+PLANS = ['training_1', 'training_2', 'training_3', 'ch_rnd_500_1']
 
 Request = collections.namedtuple('Request', ['direction', 'floor'])
 CommandTuple = collections.namedtuple('Command', ['id', 'direction', 'speed'])
@@ -42,12 +42,12 @@ def process_elevators(state, elevators):
 
 def process_requests(state, elevators):
     """Handle the requests from the state object"""
-    # TODO: Only uses 1 elevator and 1 request
+    # import pdb; pdb.set_trace()
     for request in state['requests']:
-        elevator = elevators[0]
-        if elevator.next_direction == 0:
-            elevator.process_request(request)
-        break
+        for elevator in elevators:
+            if elevator.next_direction == 0:
+                elevator.process_request(request)
+                break
 
 
 def run_elevator(boxlift):
@@ -55,12 +55,15 @@ def run_elevator(boxlift):
     elevators = build_elevators(state)
     steps = 0
     while state.get('status', 'finished') == 'in_progress':
+        print("\n\nStep %d\n\n" % (steps))
         process_elevators(state, elevators)
         process_requests(state, elevators)
 
-        to_send = [e.get_command() for e in elevators if len(e.stops) > 0]
+        to_send = [e.get_command() for e in elevators]
         state = boxlift.send_commands(to_send)
-        print(state)
+        for e in elevators:
+            print(e)
+        print("Requests: %s " % (state['requests']))
         steps += 1
 
     print(state)
@@ -76,8 +79,9 @@ def init_boxlift(plan):
     email = cl_settings['email']
     registration_id = cl_settings['registration_id']
     event_name = PYCON2015_EVENT_NAME
-    bl = BoxLift(bot_name, plan, email, registration_id, event_name, True)
+    bl = BoxLift(bot_name, plan, email, registration_id, event_name)
     run_elevator(bl)
+    print("Finished plan: %s" % (plan))
 
 if __name__ == '__main__':
-    init_boxlift(PLANS[0])
+    init_boxlift(PLANS[1])
