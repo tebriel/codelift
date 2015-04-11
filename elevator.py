@@ -2,13 +2,14 @@ from boxlift_api import Command
 
 
 class Elevator:
-    def __init__(self, state):
+    def __init__(self, state, floors):
         self.cur_direction = 0
         self.next_direction = 0
         self.location = 0
         self.speed = 0
         self.stops = []
         self.el_id = state['id']
+        self.floors = floors
         self.update_state(state)
 
     def __repr__(self):
@@ -22,38 +23,41 @@ class Elevator:
         otherwise"""
 
         # See if we're allowed to go to that floor
-        will_do = self.go_to(request['floor'], request['direction'])
+        will_do = self.go_to(request.floor, request.direction)
 
         # If we'll do it, make it so
         if will_do:
-            self.next_direction = request['direction']
+            self.next_direction = request.direction
 
         return will_do
 
-    def is_on_the_way(self, floor):
+    def is_on_the_way(self, floor, direction):
         """Tests if a floor is on the current trajectory"""
         if self.cur_direction == 1:
-            return self.location < floor
+            will_do = self.location < floor
         elif self.cur_direction == -1:
-            return self.location > floor
+            will_do = self.location > floor
         else:
-            return True
+            will_do = True
 
-    def go_to(self, floor, direction):
-        """Put the elevator on a course for a new floor"""
-        # TODO: handle buttons first
-        will_do = self.is_on_the_way(floor)
         # Check the desired direction
         if self.next_direction != 0:
             # If the requested direction is different than where we're going
             # then nope
             will_do &= self.next_direction == direction
 
-        if not will_do:
-            return False
+        return will_do
 
-        self.process_buttons([floor])
-        return True
+    def go_to(self, floor, direction):
+        """Put the elevator on a course for a new floor"""
+        result = False
+
+        # Check if we want to visit this place
+        if self.is_on_the_way(floor, direction):
+            self.process_buttons([floor])
+            result = True
+
+        return result
 
     def sort_stops(self):
         """Sorts the stops in the current cur_direction order"""
@@ -78,13 +82,27 @@ class Elevator:
             self.cur_direction = self.next_direction
             self.next_direction = 0
             self.speed = 0
-        elif self.stops[-1] > self.location:
+        elif self.stops[0] > self.location:
             self.cur_direction = 1
-        elif self.stops[-1] < self.location:
+        elif self.stops[0] < self.location:
             self.cur_direction = -1
+        elif self.stops[0] == self.location and len(self.stops) > 1:
+            self.speed = 0
         else:
             self.cur_direction = self.next_direction
             self.next_direction = 0
             self.speed = 0
 
         return Command(self.el_id, self.cur_direction, self.speed)
+
+    def calculate_distance(self, request):
+        # The distance in floors between the current and the request
+        distance = abs(self.location - request.floor)
+
+        if not self.is_on_the_way(request.floor, request.direction):
+            distance += self.floors
+
+        if request.floor in self.stops:
+            distance *= 0
+
+        return distance

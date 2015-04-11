@@ -1,5 +1,5 @@
 from nose.tools import assert_equals  # , assert_true, assert_false
-# from nose.plugins.skip import SkipTest
+from nose.plugins.skip import SkipTest
 from building import Building, Request
 
 
@@ -23,7 +23,8 @@ class TestBuilding:
                     'id': 1,
                     'floor': 0
                 }
-            ]
+            ],
+            'floors': 10
         }
 
         self.building.build_elevators(state)
@@ -59,7 +60,8 @@ class TestBuilding:
                     "direction": -1,
                     "floor": 3
                 }
-            ]
+            ],
+            'floors': 10
         }
 
         self.building.process_requests(state)
@@ -77,7 +79,8 @@ class TestBuilding:
                     "direction": 1,
                     "floor": 5
                 }
-            ]
+            ],
+            'floors': 10
         }
 
         self.building.process_requests(state)
@@ -97,7 +100,8 @@ class TestBuilding:
                     "direction": -1,
                     "floor": 3
                 }
-            ]
+            ],
+            'floors': 10
         }
         self.building.process_requests(state)
         expected = Request(3, -1)
@@ -111,7 +115,8 @@ class TestBuilding:
                     "direction": -1,
                     "floor": 3
                 }
-            ]
+            ],
+            'floors': 10
         }
         self.building.process_requests(state)
         assert_equals(len(self.building.acked), 1)
@@ -128,3 +133,20 @@ class TestBuilding:
         # import pdb; pdb.set_trace()
         self.building.generate_commands()
         assert_equals(len(self.building.acked), 0)
+
+    def test_find_cheapest_elevator_equal(self):
+        request = Request(floor=9, direction=-1)
+        result = self.building.find_cheapest_elevator(request, 10)
+        assert_equals(result, self.building.elevators[0])
+
+    def test_find_cheapest_elevator_closer(self):
+        state = {'elevators': [{'id': 1, 'floor': 5}], 'floors': 10}
+        self.building.process_elevators(state)
+
+        request = Request(floor=9, direction=-1)
+        result = self.building.find_cheapest_elevator(request, 10)
+        assert_equals(result, self.building.elevators[1])
+
+    def test_why_no_leave_ten(self):
+        raise SkipTest
+        # state = {'elevators': [{'id': 0, 'floor':

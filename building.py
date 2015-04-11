@@ -1,8 +1,11 @@
+import coloredlogs
 import logging
 from elevator import Elevator
 from collections import namedtuple
 from boxlift_api import PYCON2015_EVENT_NAME, BoxLift
 
+coloredlogs.install()
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 Request = namedtuple('Request', ['floor', 'direction'])
 
@@ -24,7 +27,7 @@ class Building:
         """Build our elevator objects"""
         self.elevators = [0] * len(state['elevators'])
         for elevator in state['elevators']:
-            self.elevators[elevator['id']] = Elevator(elevator)
+            self.elevators[elevator['id']] = Elevator(elevator, state['floors'])
 
     def process_elevators(self, state):
         """Handle the elevator state objects"""
@@ -33,14 +36,26 @@ class Building:
 
     def process_requests(self, state):
         """Handle the requests from the state object"""
-        for request in state['requests']:
-            req_tup = Request(request['floor'], request['direction'])
-            if req_tup in self.acked:
+        for request_obj in state['requests']:
+            request = Request(request_obj['floor'], request_obj['direction'])
+            if request in self.acked:
                 continue
-            for elevator in self.elevators:
-                if elevator.process_request(request):
-                    self.acked.append(req_tup)
-                    break
+            elevator = self.find_cheapest_elevator(request, state['floors'])
+            if elevator is not None:
+                elevator.process_request(request)
+                self.acked.append(request)
+
+    def find_cheapest_elevator(self, request, floors):
+        """Finds the cheapest elevator to send
+
+        Sends none if the cost is > # of floors
+        """
+        costs = []
+        for elevator in self.elevators:
+            costs.append(elevator.calculate_distance(request))
+        cheapest = costs.index(min(costs))
+        if costs[cheapest] <= floors:
+            return self.elevators[cheapest]
 
     def generate_commands(self):
         """Gathers the commands from the elevators and clears finished
@@ -69,11 +84,12 @@ class Building:
             to_send = self.do_step(state)
             state = self.bl.send_commands(to_send)
             for e in self.elevators:
-                logger.debug(e)
-            logger.info("Requests: %s ", state['requests'])
+                logger.info(e)
+            logger.info("Requests: %s", state['requests'])
+            logger.info("Acked Requests: %s", self.acked)
             steps += 1
 
         logger.info(state)
         for elevator in self.elevators:
-            logger.debug(elevator)
+            logger.info(elevator)
         logger.info("%d steps", steps)

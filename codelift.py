@@ -7,7 +7,7 @@ import logging
 from building import Building
 
 coloredlogs.install()
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 PLANS = ['training_1', 'training_2', 'training_3', 'ch_rnd_500_1']

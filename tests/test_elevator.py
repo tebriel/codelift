@@ -1,4 +1,5 @@
 from elevator import Elevator
+from building import Request
 from nose.tools import assert_equals, assert_true, assert_false
 # from nose.plugins.skip import SkipTest
 
@@ -10,7 +11,7 @@ class TestElevator:
             'id': 0,
             'floor': 0
         }
-        self.elevator = Elevator(state)
+        self.elevator = Elevator(state, 10)
 
     def test_go_to_up(self):
         """Elevator will go up"""
@@ -98,10 +99,7 @@ class TestElevator:
 
     def test_process_request(self):
         """Handle a request object"""
-        request = {
-            "direction": 1,
-            "floor": 5
-        }
+        request = Request(floor=5, direction=1)
         will_do = self.elevator.process_request(request)
         assert will_do is True
 
@@ -109,10 +107,7 @@ class TestElevator:
         """Works how I expect it to work"""
         cur_floor = 0
         while self.elevator.location < 5:
-            request = {
-                "direction": 1,
-                "floor": 5
-            }
+            request = Request(direction=1, floor=5)
             res = self.elevator.process_request(request)
             assert res is True
             comm = self.elevator.get_command()
@@ -160,17 +155,14 @@ class TestElevator:
             'floor': 3
         }
         self.elevator.update_state(state)
-        request = {
-            'direction': 1,
-            'floor': 5
-        }
+        request = Request(direction=1, floor=5)
         res = self.elevator.process_request(request)
         assert_true(res)
         com = self.elevator.get_command()
         assert_equals(com.direction, 1)
-        otw = self.elevator.is_on_the_way(5)
+        otw = self.elevator.is_on_the_way(5, 1)
         assert_true(otw)
-        otw = self.elevator.is_on_the_way(2)
+        otw = self.elevator.is_on_the_way(2, 1)
         assert_false(otw)
 
     def test_floor_on_the_way_no_direction(self):
@@ -180,9 +172,9 @@ class TestElevator:
             'floor': 3
         }
         self.elevator.update_state(state)
-        otw = self.elevator.is_on_the_way(5)
+        otw = self.elevator.is_on_the_way(5, 1)
         assert_true(otw)
-        otw = self.elevator.is_on_the_way(2)
+        otw = self.elevator.is_on_the_way(2, -1)
         assert_true(otw)
 
     def test_process_request_combine(self):
@@ -193,10 +185,7 @@ class TestElevator:
         }
         self.elevator.update_state(state)
 
-        request = {
-            'direction': 1,
-            'floor': 7
-        }
+        request = Request(direction=1, floor=7)
         res = self.elevator.process_request(request)
         assert_true(res)
         com = self.elevator.get_command()
@@ -208,10 +197,7 @@ class TestElevator:
         }
         self.elevator.update_state(state)
 
-        request = {
-            'direction': 1,
-            'floor': 8
-        }
+        request = Request(direction=1, floor=8)
         res = self.elevator.process_request(request)
         assert_true(res)
         com = self.elevator.get_command()
@@ -223,16 +209,49 @@ class TestElevator:
         }
         self.elevator.update_state(state)
 
-        request = {
-            'direction': 1,
-            'floor': 4
-        }
+        request = Request(direction=1, floor=4)
         res = self.elevator.process_request(request)
         assert_false(res)
 
-        request = {
-            'direction': -1,
-            'floor': 6
-        }
+        request = Request(direction=-1, floor=6)
         res = self.elevator.process_request(request)
         assert_false(res)
+
+    def test_calculate_distance_not_on_the_way(self):
+        """Calculates the distance from the elevator to the destination
+        When the stop is not on the way
+        """
+        state = {'id': 0, 'floor': 3}
+
+        self.elevator.update_state(state)
+
+        down_req = Request(floor=1, direction=1)
+        self.elevator.process_request(down_req)
+        self.elevator.get_command()
+
+        request = Request(floor=5, direction=1)
+        distance = self.elevator.calculate_distance(request)
+
+        assert_equals(distance, 12)
+
+    def test_calculate_distance_on_the_way(self):
+        """Calculates the distance from the elevator to the destination
+        When the stop is on the way
+        """
+        state = {'id': 0, 'floor': 3}
+
+        self.elevator.update_state(state)
+
+        down_req = Request(floor=1, direction=1)
+        self.elevator.process_request(down_req)
+        self.elevator.get_command()
+
+        # We have to spend a turn stopping and opening
+        request = Request(floor=2, direction=1)
+        distance = self.elevator.calculate_distance(request)
+        assert_equals(distance, 1)
+
+        # It's where we're going anyways, it's free
+        request = Request(floor=1, direction=1)
+        distance = self.elevator.calculate_distance(request)
+        assert_equals(distance, 0)
