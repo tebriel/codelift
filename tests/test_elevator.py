@@ -66,3 +66,18 @@ class TestElevator:
 
         assert_equals(self.elevator.stops, [5, 6])
         assert_equals(self.elevator.stops[-1], 6)
+
+    def test_go_to_down(self):
+        self.elevator.location = 5
+        self.elevator.go_to(3)
+        comm = self.elevator.get_command()
+        assert comm.id == 1
+        assert comm.direction == -1
+        assert comm.speed == 1
+
+    def test_will_not_go_to(self):
+        """Should refuse to go to a floor beacuse it's out of the way"""
+        self.elevator.location = 5
+        self.elevator.process_buttons([9])
+        self.elevator.get_command()
+        assert self.elevator.go_to(4) is False

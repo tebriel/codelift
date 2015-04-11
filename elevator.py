@@ -12,11 +12,16 @@ class Elevator:
     def go_to(self, floor):
         """Put the elevator on a course for a new floor"""
         # TODO: handle buttons first
-        self.stops = list(set(self.stops) | {floor})
-        self.sort_stops()
+        if self.direction == -1 and floor > self.location:
+            return False
+        elif self.direction == 1 and floor < self.location:
+            return False
+
+        self.process_buttons([floor])
         return True
 
     def sort_stops(self):
+        """Sorts the stops in the current direction order"""
         self.stops = sorted(self.stops, reverse=(self.direction == -1))
 
     def process_buttons(self, buttons):
@@ -31,6 +36,7 @@ class Elevator:
         self.process_buttons(state.get('buttons_pressed', []))
 
     def get_command(self):
+        """Returns a command object for sending to the API"""
         self.speed = 1
         if self.stops[-1] > self.location:
             self.direction = 1
