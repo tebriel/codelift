@@ -1,11 +1,12 @@
 import json
+import logging
 # This is to keep this imports to a minimum and work on Python 2.x and 3.x
 try:
     import urllib.request as urllib2
 except ImportError:
     import urllib2
 
-
+logger = logging.getLogger(__name__)
 PYCON2015_EVENT_NAME = 'pycon2015'
 
 
@@ -90,9 +91,9 @@ class BoxLift(object):
         # fix building_url
         self.building_url = self.url_root() + "/" + self.game_id
         self.visualization_url = state['visualization']
-        print(state['message'])
-        print('building url: {}'.format(self.building_url))
-        print('visualization url: {}'.format(self.visualization_url))
+        logger.info(state['message'])
+        logger.warn('building url: %s', self.building_url)
+        logger.warn('visualization url: %s', self.visualization_url)
 
     def _get_world_state(self, initialization_data):
         """Initialize and gets the state of the world without sending any commands to advance the clock"""
@@ -116,7 +117,7 @@ class BoxLift(object):
             command_list[command.id] = {'speed': command.speed, 'direction': command.direction}
         data = {'token': self.token, 'commands': command_list}
         state = self._post(self.building_url, data)
-        print("status: {}".format(state['status']))
+        logger.debug("status: %s", state['status'])
         if 'token' in state:
             self.token = state['token']
         if 'requests' not in state:

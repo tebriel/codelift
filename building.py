@@ -1,7 +1,9 @@
+import logging
 from elevator import Elevator
 from collections import namedtuple
 from boxlift_api import PYCON2015_EVENT_NAME, BoxLift
 
+logger = logging.getLogger(__name__)
 Request = namedtuple('Request', ['floor', 'direction'])
 
 
@@ -63,15 +65,15 @@ class Building:
 
         steps = 0
         while state.get('status', 'finished') == 'in_progress':
-            print("\n\nStep %d\n\n" % (steps))
+            logger.info("Step %d", steps)
             to_send = self.do_step(state)
             state = self.bl.send_commands(to_send)
             for e in self.elevators:
-                print(e)
-            print("Requests: %s " % (state['requests']))
+                logger.debug(e)
+            logger.info("Requests: %s ", state['requests'])
             steps += 1
 
-        print(state)
+        logger.info(state)
         for elevator in self.elevators:
-            print(elevator)
-        print("%d steps" % (steps))
+            logger.debug(elevator)
+        logger.info("%d steps", steps)
