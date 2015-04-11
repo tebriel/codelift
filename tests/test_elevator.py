@@ -5,7 +5,11 @@ from nose.tools import assert_equals
 class TestElevator:
     """Test the Elevator class and its internal methods"""
     def setup(self):
-        self.elevator = Elevator(0)
+        state = {
+            'id': 0,
+            'floor': 0
+        }
+        self.elevator = Elevator(state)
 
     def test_go_to_up(self):
         """Elevator will go up"""
@@ -124,3 +128,26 @@ class TestElevator:
         comm = self.elevator.get_command()
         assert comm.direction == 1
         assert self.elevator.speed == 0
+
+    def test_elevator_buttons_pressed(self):
+        """Goes to the floor requested by a passenger"""
+        cur_floor = 3
+        while cur_floor > 1:
+            state = {
+                "buttons_pressed": [
+                    1
+                ],
+                "floor": cur_floor,
+                "id": 0
+            }
+            cur_floor -= 1
+            self.elevator.update_state(state)
+            comm = self.elevator.get_command()
+            assert_equals(comm.direction, -1)
+            assert_equals(comm.speed, 1)
+
+        state['floor'] = cur_floor
+        self.elevator.update_state(state)
+        comm = self.elevator.get_command()
+        assert_equals(comm.direction, 0)
+        assert_equals(comm.speed, 0)

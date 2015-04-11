@@ -2,13 +2,20 @@ from boxlift_api import Command
 
 
 class Elevator:
-    def __init__(self, el_id):
+    def __init__(self, state):
         self.cur_direction = 0
         self.next_direction = 0
         self.location = 0
         self.speed = 0
         self.stops = []
-        self.el_id = el_id
+        self.el_id = state['id']
+        self.update_state(state)
+
+    def __repr__(self):
+        return "Elevator(id=%d, location=%d, speed=%d, cur_direction=%d, " \
+            "next_direction=%d, stops=%s)" % (self.el_id, self.location,
+                                              self.speed, self.cur_direction,
+                                              self.next_direction, self.stops)
 
     def process_request(self, request):
         """Handles a request, returns True if it will, Flase otherwise"""
@@ -42,12 +49,17 @@ class Elevator:
     def update_state(self, state):
         """Update ourselves with the latest state from the API"""
         self.location = state.get('floor', 0)
+        self.stops = list(set(self.stops) - set([self.location]))
         self.process_buttons(state.get('buttons_pressed', []))
 
     def get_command(self):
         """Returns a command object for sending to the API"""
         self.speed = 1
-        if self.stops[-1] > self.location:
+        if len(self.stops) == 0:
+            self.cur_direction = self.next_direction
+            self.next_direction = 0
+            self.speed = 0
+        elif self.stops[-1] > self.location:
             self.cur_direction = 1
         elif self.stops[-1] < self.location:
             self.cur_direction = -1

@@ -3,23 +3,12 @@
 import json
 import collections
 from elevator import Elevator
-from boxlift_api import PYCON2015_EVENT_NAME, BoxLift, Command
+from boxlift_api import PYCON2015_EVENT_NAME, BoxLift
 
 PLANS = ['training_1']
 
 Request = collections.namedtuple('Request', ['direction', 'floor'])
 CommandTuple = collections.namedtuple('Command', ['id', 'direction', 'speed'])
-
-
-def process_requests(state, requests):
-    for request in state.get('requests', []):
-        direction = request.get('direction', 0)
-        floor = request.get('floor', 0)
-        req = Request(direction, floor)
-        if req in requests:
-            continue
-        requests.append(req)
-        print(requests)
 
 
 def process_elevator_buttons(state):
@@ -37,42 +26,46 @@ def process_elevator_buttons(state):
     return commands
 
 
+def build_elevators(state):
+    """Build our elevator objects"""
+    elevators = [0] * len(state['elevators'])
+    for elevator in state['elevators']:
+        elevators[elevator['id']] = Elevator(elevator)
+    return elevators
+
+
+def process_elevators(state, elevators):
+    """Handle the elevator state objects"""
+    for elevator in state['elevators']:
+        elevators[elevator['id']].update_state(elevator)
+
+
+def process_requests(state, elevators):
+    """Handle the requests from the state object"""
+    # TODO: Only uses 1 elevator and 1 request
+    for request in state['requests']:
+        elevator = elevators[0]
+        if elevator.next_direction == 0:
+            elevator.process_request(request)
+        break
+
+
 def run_elevator(boxlift):
     state = boxlift.send_commands()
-    new_requests = []
-    elevator_tasks = []
+    elevators = build_elevators(state)
     steps = 0
-    while state.get('status', 'finished') != 'finished':
-        process_requests(state, new_requests)
+    while state.get('status', 'finished') == 'in_progress':
+        process_elevators(state, elevators)
+        process_requests(state, elevators)
 
-        commands = process_elevator_buttons(state)
-
-        for elevator in state['elevators']:
-            cur_floor = elevator['floor']
-            el_id = elevator['id']
-            for request in new_requests:
-                new_command = None
-                if cur_floor < request.floor:
-                    new_command = CommandTuple(el_id, 1, 1)
-                elif cur_floor > request.floor:
-                    new_command = CommandTuple(el_id, -1, 1)
-                elif cur_floor == request.floor:
-                    new_command = CommandTuple(el_id, request.direction, 0)
-
-                if new_command is not None and new_command not in commands:
-                    commands.append(new_command)
-
-        to_send = []
-        ele_seen = []
-        for com in commands:
-            print(com.id, com.direction, com.speed)
-            if com.id not in ele_seen:
-                to_send.append(Command(com.id, com.direction, com.speed))
-                ele_seen.append(com.id)
+        to_send = [e.get_command() for e in elevators if len(e.stops) > 0]
         state = boxlift.send_commands(to_send)
+        print(state)
         steps += 1
 
     print(state)
+    for elevator in elevators:
+        print(elevator)
     print("%d steps" % (steps))
 
 
@@ -83,7 +76,7 @@ def init_boxlift(plan):
     email = cl_settings['email']
     registration_id = cl_settings['registration_id']
     event_name = PYCON2015_EVENT_NAME
-    bl = BoxLift(bot_name, plan, email, registration_id, event_name)
+    bl = BoxLift(bot_name, plan, email, registration_id, event_name, True)
     run_elevator(bl)
 
 if __name__ == '__main__':
