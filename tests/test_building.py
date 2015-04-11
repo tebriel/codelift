@@ -12,6 +12,7 @@ class TestBuilding:
             'registration_id': 'test_123'
         }
         self.building = Building('training_1', settings)
+        self.building.floors = 10
 
         state = {
             'elevators': [
@@ -130,7 +131,6 @@ class TestBuilding:
             ]
         }
         self.building.process_elevators(state)
-        # import pdb; pdb.set_trace()
         self.building.generate_commands()
         assert_equals(len(self.building.acked), 0)
 
@@ -146,3 +146,32 @@ class TestBuilding:
         request = Request(floor=9, direction=-1)
         result = self.building.find_cheapest_elevator(request, 10)
         assert_equals(result, self.building.elevators[1])
+
+    def test_manage_idle_elevators(self):
+        self.building.elevators[0].wait_count = 2
+        self.building.elevators[1].wait_count = 2
+        commands = self.building.generate_commands()
+        self.building.manage_idle_elevators(commands)
+        for command in commands:
+            assert_equals(command.direction, 1)
+            assert_equals(command.speed, 1)
+
+        state = {'requests': [{'floor': 5, 'direction': -1}]}
+        self.building.process_requests(state)
+        commands = self.building.generate_commands()
+        for command in commands:
+            assert_equals(command.direction, 1)
+            assert_equals(command.speed, 1)
+
+    def test_manage_idle_elevators_more(self):
+        state = {'elevators': [{'id': 0, 'floor': 6}]}
+        self.building.process_elevators(state)
+        self.building.elevators[0].wait_count = 2
+        self.building.elevators[1].wait_count = 2
+        state = {'requests': [{'floor': 5, 'direction': -1}]}
+        self.building.process_requests(state)
+        commands = self.building.generate_commands()
+        assert_equals(commands[0].direction, -1)
+        assert_equals(commands[0].speed, 1)
+        assert_equals(commands[1].direction, 1)
+        assert_equals(commands[1].speed, 1)

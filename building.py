@@ -1,8 +1,9 @@
 import coloredlogs
 import logging
+# import webbrowser
 from elevator import Elevator
 from collections import namedtuple
-from boxlift_api import PYCON2015_EVENT_NAME, BoxLift
+from boxlift_api import PYCON2015_EVENT_NAME, BoxLift, Command
 
 coloredlogs.install()
 logging.basicConfig(level=logging.DEBUG)
@@ -18,16 +19,18 @@ class Building:
         self.event_name = PYCON2015_EVENT_NAME
         self.plan = plan
         self.acked = []
+        self.floors = 0
 
     def connect(self):
         self.bl = BoxLift(self.bot_name, self.plan, self.email,
                           self.registration_id, self.event_name)
+        # webbrowser.open_new_tab(self.bl.visualization_url)
 
     def build_elevators(self, state):
         """Build our elevator objects"""
         self.elevators = [0] * len(state['elevators'])
         for elevator in state['elevators']:
-            self.elevators[elevator['id']] = Elevator(elevator, state['floors'])
+            self.elevators[elevator['id']] = Elevator(elevator, self.floors)
 
     def process_elevators(self, state):
         """Handle the elevator state objects"""
@@ -40,7 +43,7 @@ class Building:
             request = Request(request_obj['floor'], request_obj['direction'])
             if request in self.acked:
                 continue
-            elevator = self.find_cheapest_elevator(request, state['floors'])
+            elevator = self.find_cheapest_elevator(request, self.floors)
             if elevator is not None:
                 elevator.process_request(request)
                 self.acked.append(request)
@@ -66,6 +69,7 @@ class Building:
             if elevator.speed == 0:
                 request = Request(elevator.location, elevator.cur_direction)
                 self.acked = list(set(self.acked) - {request})
+        self.manage_idle_elevators(commands)
         return commands
 
     def do_step(self, state):
@@ -76,6 +80,7 @@ class Building:
 
     def start(self):
         state = self.bl.send_commands()
+        self.floors = state['floors']
         self.build_elevators(state)
 
         steps = 0
@@ -93,3 +98,26 @@ class Building:
         for elevator in self.elevators:
             logger.info(elevator)
         logger.info("%d steps", steps)
+
+    def manage_idle_elevators(self, commands):
+        average = 0
+        bored_elevators = []
+        for elevator in self.elevators:
+            average += elevator.location
+            if elevator.bored:
+                bored_elevators.append(elevator)
+        average /= len(self.elevators)
+
+        half_floors = self.floors // 2
+        quarter_floors = self.floors // 4
+        if average < half_floors:
+            for elevator in bored_elevators:
+                if abs(half_floors - elevator.location) < quarter_floors:
+                    continue
+                if elevator.location > half_floors:
+                    direction = -1
+                else:
+                    direction = 1
+
+                command = Command(elevator.el_id, direction, 1)
+                commands[elevator.el_id] = command

@@ -1,16 +1,25 @@
 from boxlift_api import Command
+import coloredlogs
+import logging
+
+coloredlogs.install()
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
-class Elevator:
+class Elevator(object):
     def __init__(self, state, floors):
         self.cur_direction = 0
         self.next_direction = 0
         self.location = 0
+        self.last_floor = 0
         self.speed = 0
+        self.wait_count = 0
         self.stops = []
         self.el_id = state['id']
         self.floors = floors
         self.update_state(state)
+        self.bored = False
 
     def __repr__(self):
         return "Elevator(id=%d, location=%d, speed=%d, cur_direction=%d, " \
@@ -71,6 +80,11 @@ class Elevator:
 
     def update_state(self, state):
         """Update ourselves with the latest state from the API"""
+        if self.last_floor == self.location:
+            self.wait_count += 1
+        else:
+            self.wait_count = 0
+        self.last_floor = self.location
         self.location = state.get('floor', 0)
         self.stops = list(set(self.stops) - set([self.location]))
         self.process_buttons(state.get('buttons_pressed', []))
@@ -92,6 +106,8 @@ class Elevator:
             self.cur_direction = self.next_direction
             self.next_direction = 0
             self.speed = 0
+
+        self.bored = self.wait_count > 1
 
         return Command(self.el_id, self.cur_direction, self.speed)
 
