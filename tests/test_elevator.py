@@ -1,5 +1,6 @@
 from elevator import Elevator
-from nose.tools import assert_equals
+from nose.tools import assert_equals, assert_true, assert_false
+# from nose.plugins.skip import SkipTest
 
 
 class TestElevator:
@@ -151,3 +152,87 @@ class TestElevator:
         comm = self.elevator.get_command()
         assert_equals(comm.direction, 0)
         assert_equals(comm.speed, 0)
+
+    def test_floor_on_the_way(self):
+        """Test to see if we can pick up the new passenger"""
+        state = {
+            'id': 0,
+            'floor': 3
+        }
+        self.elevator.update_state(state)
+        request = {
+            'direction': 1,
+            'floor': 5
+        }
+        res = self.elevator.process_request(request)
+        assert_true(res)
+        com = self.elevator.get_command()
+        assert_equals(com.direction, 1)
+        otw = self.elevator.is_on_the_way(5)
+        assert_true(otw)
+        otw = self.elevator.is_on_the_way(2)
+        assert_false(otw)
+
+    def test_floor_on_the_way_no_direction(self):
+        """Test to see if we can pick up the new passenger when empty"""
+        state = {
+            'id': 0,
+            'floor': 3
+        }
+        self.elevator.update_state(state)
+        otw = self.elevator.is_on_the_way(5)
+        assert_true(otw)
+        otw = self.elevator.is_on_the_way(2)
+        assert_true(otw)
+
+    def test_process_request_combine(self):
+        """Test combining of trips to save time"""
+        state = {
+            'id': 0,
+            'floor': 3
+        }
+        self.elevator.update_state(state)
+
+        request = {
+            'direction': 1,
+            'floor': 7
+        }
+        res = self.elevator.process_request(request)
+        assert_true(res)
+        com = self.elevator.get_command()
+        assert_equals(com.direction, 1)
+
+        state = {
+            'id': 0,
+            'floor': 4
+        }
+        self.elevator.update_state(state)
+
+        request = {
+            'direction': 1,
+            'floor': 8
+        }
+        res = self.elevator.process_request(request)
+        assert_true(res)
+        com = self.elevator.get_command()
+        assert_equals(com.direction, 1)
+
+        state = {
+            'id': 0,
+            'floor': 5
+        }
+        self.elevator.update_state(state)
+
+        request = {
+            'direction': 1,
+            'floor': 4
+        }
+        res = self.elevator.process_request(request)
+        assert_false(res)
+
+        request = {
+            'direction': -1,
+            'floor': 6
+        }
+        res = self.elevator.process_request(request)
+        assert_false(res)

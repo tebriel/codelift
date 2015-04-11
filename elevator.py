@@ -18,19 +18,37 @@ class Elevator:
                                               self.next_direction, self.stops)
 
     def process_request(self, request):
-        """Handles a request, returns True if it will, Flase otherwise"""
+        """Handles an external request, returns True if it will, Flase
+        otherwise"""
+
+        # See if we're allowed to go to that floor
         will_do = self.go_to(request['floor'])
+
+        # Check the desired direction
+        if self.next_direction != 0:
+            # If the requested direction is different than where we're going
+            # then nope
+            will_do &= self.next_direction == request['direction']
+
+        # If we'll do it, make it so
         if will_do:
             self.next_direction = request['direction']
 
         return will_do
 
+    def is_on_the_way(self, floor):
+        """Tests if a floor is on the current trajectory"""
+        if self.cur_direction == 1:
+            return self.location < floor
+        elif self.cur_direction == -1:
+            return self.location > floor
+        else:
+            return True
+
     def go_to(self, floor):
         """Put the elevator on a course for a new floor"""
         # TODO: handle buttons first
-        if self.cur_direction == -1 and floor > self.location:
-            return False
-        elif self.cur_direction == 1 and floor < self.location:
+        if not self.is_on_the_way(floor):
             return False
 
         self.process_buttons([floor])
