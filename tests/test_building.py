@@ -1,5 +1,5 @@
 from nose.tools import assert_equals  # , assert_true, assert_false
-from nose.plugins.skip import SkipTest
+# from nose.plugins.skip import SkipTest
 from building import Building, Request
 
 
@@ -146,7 +146,3 @@ class TestBuilding:
         request = Request(floor=9, direction=-1)
         result = self.building.find_cheapest_elevator(request, 10)
         assert_equals(result, self.building.elevators[1])
-
-    def test_why_no_leave_ten(self):
-        raise SkipTest
-        # state = {'elevators': [{'id': 0, 'floor':
