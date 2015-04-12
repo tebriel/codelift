@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 PLANS = ['training_1', 'training_2', 'training_3', 'ch_rnd_500_1',
          'ch_rnd_500_2', 'ch_rnd_500_3', 'ch_clu_500_1', 'ch_clu_500_2',
-         'ch_clu_500_2', 'ch_clu_500_3']
+         'ch_clu_500_3', 'ch_rea_1000_1', 'ch_rea_1000_2', 'ch_rea_1000_3']
 
 if __name__ == '__main__':
     plan_id = 0
