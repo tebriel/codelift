@@ -14,18 +14,13 @@ class Elevator(object):
         self.location = 0
         self.last_floor = 0
         self.speed = 0
-        self.wait_count = 0
+        self.wait_count = 2
         self.stops = []
         self.el_id = state['id']
         self.floors = floors
+        self.playing = True
+        self.bored = True
         self.update_state(state)
-        self.bored = False
-
-    def __repr__(self):
-        return "Elevator(id=%d, location=%d, speed=%d, cur_direction=%d, " \
-            "next_direction=%d, stops=%s)" % (self.el_id, self.location,
-                                              self.speed, self.cur_direction,
-                                              self.next_direction, self.stops)
 
     def process_request(self, request):
         """Handles an external request, returns True if it will, Flase
@@ -84,6 +79,7 @@ class Elevator(object):
             self.wait_count += 1
         else:
             self.wait_count = 0
+            self.playing = False
         self.last_floor = self.location
         self.location = state.get('floor', 0)
         self.stops = list(set(self.stops) - set([self.location]))
@@ -107,7 +103,7 @@ class Elevator(object):
             self.next_direction = 0
             self.speed = 0
 
-        self.bored = self.wait_count > 1
+        self.bored = self.wait_count > 1 and len(self.stops) == 0
 
         return Command(self.el_id, self.cur_direction, self.speed)
 
@@ -122,3 +118,12 @@ class Elevator(object):
             distance *= 0
 
         return distance
+
+    def __repr__(self):
+        return "Elevator(id=%d, location=%d, speed=%d, cur_direction=%d, " \
+            "next_direction=%d, stops=%s, bored=%s)" % (self.el_id,
+                                                        self.location,
+                                                        self.speed,
+                                                        self.cur_direction,
+                                                        self.next_direction,
+                                                        self.stops, self.bored)

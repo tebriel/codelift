@@ -47,6 +47,7 @@ class Building:
             if elevator is not None:
                 elevator.process_request(request)
                 self.acked.append(request)
+        self.acked = list(set(self.acked))
 
     def find_cheapest_elevator(self, request, floors):
         """Finds the cheapest elevator to send
@@ -57,8 +58,10 @@ class Building:
         for elevator in self.elevators:
             costs.append(elevator.calculate_distance(request))
         cheapest = costs.index(min(costs))
-        if costs[cheapest] <= floors:
+        if costs[cheapest] <= floors + 1:
             return self.elevators[cheapest]
+        else:
+            logger.error("No cheapest found: %s", costs)
 
     def generate_commands(self):
         """Gathers the commands from the elevators and clears finished
@@ -100,24 +103,19 @@ class Building:
         logger.info("%d steps", steps)
 
     def manage_idle_elevators(self, commands):
-        average = 0
         bored_elevators = []
         for elevator in self.elevators:
-            average += elevator.location
-            if elevator.bored:
+            if elevator.bored is True:
                 bored_elevators.append(elevator)
-        average /= len(self.elevators)
 
         half_floors = self.floors // 2
-        quarter_floors = self.floors // 4
-        if average < half_floors:
-            for elevator in bored_elevators:
-                if abs(half_floors - elevator.location) < quarter_floors:
-                    continue
-                if elevator.location > half_floors:
-                    direction = -1
-                else:
-                    direction = 1
+        for elevator in bored_elevators:
+            if elevator.location > half_floors:
+                direction = -1
+            else:
+                direction = 1
 
-                command = Command(elevator.el_id, direction, 1)
-                commands[elevator.el_id] = command
+            command = Command(elevator.el_id, direction, 1)
+            commands[elevator.el_id] = command
+            elevator.playing = True
+            logger.error("I'm idle! %s", elevator)

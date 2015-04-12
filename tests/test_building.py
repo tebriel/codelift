@@ -148,8 +148,10 @@ class TestBuilding:
         assert_equals(result, self.building.elevators[1])
 
     def test_manage_idle_elevators(self):
-        self.building.elevators[0].wait_count = 2
-        self.building.elevators[1].wait_count = 2
+        self.building.elevators[0].wait_count = 3
+        self.building.elevators[0].playing = True
+        self.building.elevators[1].wait_count = 3
+        self.building.elevators[1].playing = True
         commands = self.building.generate_commands()
         self.building.manage_idle_elevators(commands)
         for command in commands:
@@ -166,8 +168,11 @@ class TestBuilding:
     def test_manage_idle_elevators_more(self):
         state = {'elevators': [{'id': 0, 'floor': 6}]}
         self.building.process_elevators(state)
-        self.building.elevators[0].wait_count = 2
-        self.building.elevators[1].wait_count = 2
+        self.building.elevators[0].wait_count = 3
+        self.building.elevators[0].playing = True
+        self.building.elevators[1].wait_count = 3
+        self.building.elevators[1].playing = True
+
         state = {'requests': [{'floor': 5, 'direction': -1}]}
         self.building.process_requests(state)
         commands = self.building.generate_commands()
